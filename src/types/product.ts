@@ -17,6 +17,7 @@ export interface ProductResponse {
   total: number;
   skip: number;
   limit: number;
+  minimumOrderQuantity: number;
 }
 
 export interface Review {

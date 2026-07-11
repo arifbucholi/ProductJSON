@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Search,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 import ProductCard from "../../components/ProductCard";
 
@@ -28,6 +24,49 @@ function Products() {
 
   const [keyword, setKeyword] = useState("");
   const [search, setSearch] = useState("");
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  //Pagination Mobile
+  useEffect(() => {
+    const check = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+
+    check();
+
+    window.addEventListener("resize", check);
+
+    return () => {
+      window.removeEventListener("resize", check);
+    };
+  }, []);
+
+  const getMobilePagination = () => {
+    const pages: (number | string)[] = [];
+
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    pages.push(1);
+
+    if (page > 3) {
+      pages.push("...");
+    }
+
+    if (page !== 1 && page !== totalPages) {
+      pages.push(page);
+    }
+
+    if (page < totalPages - 2) {
+      pages.push("...");
+    }
+
+    pages.push(totalPages);
+
+    return pages;
+  };
 
   // Load currency sekali
   useEffect(() => {
@@ -74,9 +113,9 @@ function Products() {
   }, [keyword]);
 
   // Reset page ketika search berubah
-  useEffect(() => {
-    setPage(1);
-  }, [search]);
+  //   useEffect(() => {
+  //     setPage(1);
+  //   }, [search]);
 
   // Search + pagination
   useEffect(() => {
@@ -91,16 +130,9 @@ function Products() {
         let res;
 
         if (search) {
-          res = await searchProducts(
-            search,
-            LIMIT,
-            skip
-          );
+          res = await searchProducts(search, LIMIT, skip);
         } else {
-          res = await getProducts(
-            skip,
-            LIMIT
-          );
+          res = await getProducts(skip, LIMIT);
         }
 
         setProducts(res.products);
@@ -121,10 +153,7 @@ function Products() {
     const pages: (number | string)[] = [];
 
     if (totalPages <= 7) {
-      return Array.from(
-        { length: totalPages },
-        (_, index) => index + 1
-      );
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
     }
 
     pages.push(1);
@@ -134,10 +163,7 @@ function Products() {
     }
 
     const start = Math.max(2, page - 1);
-    const end = Math.min(
-      totalPages - 1,
-      page + 1
-    );
+    const end = Math.min(totalPages - 1, page + 1);
 
     for (let i = start; i <= end; i++) {
       pages.push(i);
@@ -152,7 +178,7 @@ function Products() {
     return pages;
   };
 
-  const pages = getPagination();
+  const pages = isMobile ? getMobilePagination() : getPagination();
 
   if (loading) {
     return (
@@ -166,9 +192,7 @@ function Products() {
     <section className="mx-auto max-w-7xl px-6 py-12">
       <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-5xl font-bold tracking-tight">
-            Products
-          </h1>
+          <h1 className="text-5xl font-bold tracking-tight">Products</h1>
 
           <p className="mt-3 text-zinc-500">
             Discover thoughtfully curated products for your everyday life.
@@ -185,9 +209,7 @@ function Products() {
             <input
               type="text"
               value={keyword}
-              onChange={(e) =>
-                setKeyword(e.target.value)
-              }
+              onChange={(e) => setKeyword(e.target.value)}
               placeholder="Search products..."
               className="
                 w-full
@@ -223,108 +245,126 @@ function Products() {
       ) : (
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              rate={rate}
-            />
+            <ProductCard key={product.id} product={product} rate={rate} />
           ))}
         </div>
       )}
-            {totalPages > 1 && (
-        <div className="mt-20 flex items-center justify-center">
-          <div className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-2 shadow-sm">
-            
+      {totalPages > 1 && (
+        <div className="mt-20 flex items-center justify-center px-4">
+          <div
+            className="
+      flex
+      max-w-full
+      items-center
+      gap-2
+      overflow-x-auto
+      rounded-2xl
+      border
+      border-zinc-200
+      bg-white
+      p-2
+      shadow-sm
+    "
+          >
             {/* Previous */}
             <button
-              onClick={() =>
-                setPage((prev) => prev - 1)
-              }
+              onClick={() => setPage((prev) => prev - 1)}
               disabled={page === 1}
               className="
-                flex
-                h-11
-                items-center
-                gap-2
-                rounded-xl
-                px-4
-                text-sm
-                font-medium
-                transition
-                hover:bg-zinc-100
-                disabled:pointer-events-none
-                disabled:opacity-40
-              "
+        flex
+        h-10
+        w-10
+        shrink-0
+        items-center
+        justify-center
+        rounded-xl
+        text-sm
+        font-medium
+        transition
+        hover:bg-zinc-100
+        disabled:pointer-events-none
+        disabled:opacity-40
+        cursor-pointer
+
+        sm:h-11
+        sm:w-auto
+        sm:gap-2
+        sm:px-4
+      "
             >
               <ChevronLeft size={18} />
-              Previous
+
+              <span className="hidden sm:block">Previous</span>
             </button>
 
-
             {/* Page Number */}
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               {pages.map((item, index) =>
                 item === "..." ? (
-                  <span
-                    key={index}
-                    className="px-2 text-zinc-400"
-                  >
+                  <span key={index} className="px-1 text-zinc-400 sm:px-2">
                     •••
                   </span>
                 ) : (
                   <button
                     key={index}
-                    onClick={() =>
-                      setPage(item as number)
-                    }
+                    onClick={() => setPage(item as number)}
                     className={`
-                      h-11
-                      w-11
-                      rounded-xl
-                      text-sm
-                      font-semibold
-                      transition-all
-                      duration-300
+              h-10
+              w-10
+              shrink-0
+              rounded-xl
+              text-sm
+              font-semibold
+              transition-all
+              duration-300
+              cursor-pointer
 
-                      ${
-                        page === item
-                          ? "scale-105 bg-black text-white shadow-lg"
-                          : "text-zinc-700 hover:bg-zinc-100"
-                      }
-                    `}
+              sm:h-11
+              sm:w-11
+
+              ${
+                page === item
+                  ? "scale-105 bg-black text-white shadow-lg"
+                  : "text-zinc-700 hover:bg-zinc-100"
+              }
+            `}
                   >
                     {item}
                   </button>
-                )
+                ),
               )}
             </div>
 
-
             {/* Next */}
             <button
-              onClick={() =>
-                setPage((prev) => prev + 1)
-              }
+              onClick={() => setPage((prev) => prev + 1)}
               disabled={page === totalPages}
               className="
-                flex
-                h-11
-                items-center
-                gap-2
-                rounded-xl
-                px-4
-                text-sm
-                font-medium
-                transition
-                hover:bg-zinc-100
-                disabled:pointer-events-none
-                disabled:opacity-40
-              "
+        flex
+        h-10
+        w-10
+        shrink-0
+        items-center
+        justify-center
+        rounded-xl
+        text-sm
+        font-medium
+        transition
+        hover:bg-zinc-100
+        disabled:pointer-events-none
+        disabled:opacity-40
+        cursor-pointer
+
+        sm:h-11
+        sm:w-auto
+        sm:gap-2
+        sm:px-4
+      "
             >
-              Next
+              <span className="hidden sm:block">Next</span>
+
               <ChevronRight size={18} />
             </button>
-
           </div>
         </div>
       )}

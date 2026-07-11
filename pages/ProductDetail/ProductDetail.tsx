@@ -14,8 +14,13 @@ import { getProductById } from "../../src/services/product.services";
 
 import type { Product } from "../../src/types/product";
 
-import { formatRupiah } from "../../src/utils/currency";
+import {
+  formatRupiah,
+  getDiscountedPrice,
+} from "../../src/utils/product.utils";
 import { useCartStore } from "../../src/store/useCartStore";
+
+import { toast } from "sonner";
 
 function ProductDetail() {
   const { id } = useParams();
@@ -41,6 +46,7 @@ function ProductDetail() {
 
         setProduct(productRes);
         setSelectedImage(productRes.images[0] || productRes.thumbnail);
+        setQuantity(productRes.minimumOrderQuantity);
         setRate(currencyRes.rates.IDR);
       } catch (error) {
         console.error(error);
@@ -74,7 +80,36 @@ function ProductDetail() {
     );
   }
 
-  const price = product.price * rate;
+  const originalPrice = product.price * rate;
+
+  const discountedPrice = getDiscountedPrice(
+    originalPrice,
+    product.discountPercentage,
+  );
+
+  const handleAddToCart = () => {
+    if (product.stock === 0) {
+      toast.error("This product is out of stock.");
+
+      return;
+    }
+
+    if (quantity < product.minimumOrderQuantity) {
+      toast.error(`Minimum order is ${product.minimumOrderQuantity} items.`);
+
+      return;
+    }
+
+    if (quantity > product.stock) {
+      toast.error(`Only ${product.stock} items available.`);
+
+      return;
+    }
+
+    addToCart(product, quantity);
+
+    toast.success(`${quantity} item(s) added to cart successfully.`);
+  };
 
   return (
     <section className="mx-auto max-w-7xl px-4 sm:px-6 py-10 sm:py-12">
@@ -98,7 +133,7 @@ function ProductDetail() {
               <button
                 key={index}
                 onClick={() => setSelectedImage(image)}
-                className={`shrink-0 group overflow-hidden rounded-2xl border-2 bg-[#f5f5f7] p-2 transition ${
+                className={`shrink-0 group overflow-hidden rounded-2xl border-2 bg-[#f5f5f7] p-2 transition cursor-pointer ${
                   selectedImage === image
                     ? "border-black shadow-md"
                     : "border-transparent hover:border-zinc-300"
@@ -148,32 +183,103 @@ function ProductDetail() {
 
         {/* INFO SECTION */}
         <div>
-          <span className="rounded-full bg-zinc-100 px-4 py-2 text-sm capitalize">
+          {/* Category */}
+          <span className="inline-flex rounded-full bg-zinc-100 px-4 py-2 text-sm capitalize text-zinc-700">
             {product.category}
           </span>
 
-          <h1 className="mt-5 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+          {/* Title */}
+          <h1 className="mt-6 text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
             {product.title}
           </h1>
 
-          <div className="mt-4 sm:mt-5 flex items-center gap-2">
-            <Star size={18} className="fill-yellow-400 text-yellow-400" />
-            <span className="font-medium">{product.rating}</span>
-            <span className="text-zinc-500">({product.stock} in stock)</span>
+          {/* Rating */}
+          <div className="mt-5 flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <Star size={18} className="fill-yellow-400 text-yellow-400" />
+              <span className="font-semibold">{product.rating}</span>
+            </div>
+
+            <span className="text-zinc-500">
+              ({product.reviews.length} reviews)
+            </span>
           </div>
 
-          <h2 className="mt-6 sm:mt-8 text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight">
-            {formatRupiah(price)}
-          </h2>
-
+          {/* Price */}
           <div className="mt-8">
-            <h3 className="mb-2 text-lg font-semibold">Brand</h3>
-            <p className="text-zinc-600">{product.brand}</p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight">
+                {formatRupiah(discountedPrice)}
+              </h2>
+
+              <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-semibold text-red-600">
+                -{product.discountPercentage.toFixed(0)}%
+              </span>
+            </div>
+
+            <p className="mt-2 text-lg text-zinc-400 line-through">
+              {formatRupiah(originalPrice)}
+            </p>
           </div>
 
-          <div className="mt-6 sm:mt-8">
-            <h3 className="mb-2 text-lg font-semibold">Description</h3>
-            <p className="leading-7 sm:leading-8 text-zinc-600">
+          {/* Specification */}
+          <div className="mt-8 rounded-3xl bg-zinc-50 p-6">
+            <div className="grid grid-cols-2 gap-y-5">
+              <div>
+                <p className="text-sm text-zinc-500">Brand</p>
+
+                <p className="mt-1 font-semibold">{product.brand}</p>
+              </div>
+
+              <div>
+                <p className="text-sm text-zinc-500">Stock</p>
+
+                <p className="mt-1 font-semibold">{product.stock} items</p>
+              </div>
+
+              <div>
+                <p className="text-sm text-zinc-500">Shipping</p>
+
+                <p className="mt-1 font-semibold">
+                  {product.shippingInformation}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-zinc-500">Warranty</p>
+
+                <p className="mt-1 font-semibold">
+                  {product.warrantyInformation}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-zinc-500">Minimum Order</p>
+
+                <p className="mt-1 font-semibold">
+                  {product.minimumOrderQuantity} items
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-zinc-500">Status</p>
+
+                <p
+                  className={`mt-1 font-semibold ${
+                    product.stock > 0 ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {product.availabilityStatus}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold">Description</h3>
+
+            <p className="mt-3 leading-8 text-zinc-600">
               {product.description}
             </p>
           </div>
@@ -184,8 +290,17 @@ function ProductDetail() {
 
             <div className="flex items-center gap-4">
               <button
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                className="w-11 h-11 rounded-full border flex items-center justify-center hover:bg-zinc-100 transition"
+                onClick={() => {
+                  if (quantity <= product.minimumOrderQuantity) {
+                    toast.error(
+                      `Minimum order is ${product.minimumOrderQuantity} items`,
+                    );
+                    return;
+                  }
+
+                  setQuantity((q) => q - 1);
+                }}
+                className="w-11 h-11 rounded-full border flex items-center justify-center hover:bg-zinc-100 transition cursor-pointer"
               >
                 <Minus size={18} />
               </button>
@@ -195,8 +310,15 @@ function ProductDetail() {
               </span>
 
               <button
-                onClick={() => setQuantity((q) => q + 1)}
-                className="w-11 h-11 rounded-full border flex items-center justify-center hover:bg-zinc-100 transition"
+                onClick={() => {
+                  if (quantity >= product.stock) {
+                    toast.error(`Only ${product.stock} items available`);
+                    return;
+                  }
+
+                  setQuantity((q) => q + 1);
+                }}
+                className="w-11 h-11 rounded-full border flex items-center justify-center hover:bg-zinc-100 transition cursor-pointer"
               >
                 <Plus size={18} />
               </button>
@@ -205,27 +327,39 @@ function ProductDetail() {
 
           {/* BUTTONS */}
           <div className="mt-10 sm:mt-12 flex gap-4">
-            <button className="flex-1 rounded-2xl bg-black px-6 py-4 font-semibold text-white transition hover:scale-[1.02]">
-              <div
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  addToCart(product, quantity);
-                }}
-                className="flex items-center justify-center gap-3 text-sm sm:text-base"
-              >
+            <button
+              onClick={handleAddToCart}
+              disabled={product.stock === 0}
+              className={`
+    flex-1
+    rounded-2xl
+    px-6
+    py-4
+    font-semibold
+    text-white
+    transition cursor-pointer
+
+    ${
+      product.stock === 0
+        ? "cursor-not-allowed bg-zinc-400"
+        : "bg-black hover:scale-[1.02]"
+    }
+  `}
+            >
+              <div className="flex items-center justify-center gap-3">
                 <ShoppingCart size={20} />
-                Add to Cart
+
+                {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
               </div>
             </button>
 
-            <button className="rounded-2xl border px-5 transition hover:bg-red-500 hover:text-white">
+            <button className="rounded-2xl border px-5 transition hover:bg-red-500 hover:text-white cursor-pointer">
               <Heart size={22} />
             </button>
           </div>
 
           {/* INFO GRID */}
-          <div className="mt-10 sm:mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* <div className="mt-10 sm:mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="rounded-2xl bg-zinc-100 p-5">
               <p className="text-sm text-zinc-500">Brand</p>
               <p className="mt-2 font-semibold">{product.brand}</p>
@@ -242,7 +376,55 @@ function ProductDetail() {
               <p className="text-sm text-zinc-500">Stock</p>
               <p className="mt-2 font-semibold">{product.stock}</p>
             </div>
-          </div>
+          </div> */}
+        </div>
+      </div>
+
+      {/* REVIEWS */}
+      <div className="mt-14">
+        <h2 className="text-2xl font-bold tracking-tight">Customer Reviews</h2>
+
+        <p className="mt-2 text-zinc-500">
+          {product.reviews.length} review
+          {product.reviews.length > 1 && "s"}
+        </p>
+
+        <div className="mt-8 space-y-6">
+          {product.reviews.map((review, index) => (
+            <div key={index} className="rounded-3xl border border-zinc-200 p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className="font-semibold text-lg">
+                    {review.reviewerName}
+                  </h3>
+
+                  <p className="text-sm text-zinc-500">
+                    {new Date(review.date).toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      size={18}
+                      className={
+                        i < review.rating
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "text-zinc-300"
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <p className="mt-5 leading-7 text-zinc-600">{review.comment}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>
