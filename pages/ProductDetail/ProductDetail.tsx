@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Heart,
@@ -22,9 +22,10 @@ import { useCartStore } from "../../src/store/useCartStore";
 
 import { toast } from "sonner";
 
+import NotFound from "../NotFound/NotFound";
+
 function ProductDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [rate, setRate] = useState(17000);
@@ -68,15 +69,8 @@ function ProductDetail() {
 
   if (!product) {
     return (
-      <div className="flex h-[80vh] flex-col items-center justify-center gap-5">
-        <h1 className="text-4xl font-bold">Product Not Found</h1>
-        <button
-          onClick={() => navigate("/products")}
-          className="rounded-xl bg-black px-6 py-3 text-white"
-        >
-          Back to Products
-        </button>
-      </div>
+      // halaman 404
+      <NotFound/>
     );
   }
 
@@ -331,20 +325,21 @@ function ProductDetail() {
               onClick={handleAddToCart}
               disabled={product.stock === 0}
               className={`
-    flex-1
-    rounded-2xl
-    px-6
-    py-4
-    font-semibold
-    text-white
-    transition cursor-pointer
-
-    ${
-      product.stock === 0
-        ? "cursor-not-allowed bg-zinc-400"
-        : "bg-black hover:scale-[1.02]"
-    }
-  `}
+                  flex-1
+                  rounded-2xl
+                  border
+                  px-6
+                  py-4
+                  font-semibold
+                  text-white
+                  transition cursor-pointer
+  
+                  ${
+                    product.stock === 0
+                      ? "cursor-not-allowed bg-zinc-400"
+                      : "bg-black hover:bg-white hover:text-black"
+                  }
+              `}
             >
               <div className="flex items-center justify-center gap-3">
                 <ShoppingCart size={20} />

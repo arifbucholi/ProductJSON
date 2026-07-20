@@ -4,6 +4,8 @@ import { Heart, Trash2, ShoppingCart } from "lucide-react";
 import { useFavoriteStore } from "../../src/store/useFavoriteStore";
 import { useCartStore } from "../../src/store/useCartStore";
 import { formatRupiah } from "../../src/utils/product.utils";
+import { toast } from "sonner";
+import { getProductById } from "../../src/services/product.services";
 
 function FavoritePage() {
   const favorites = useFavoriteStore((state) => state.favorites);
@@ -11,7 +13,6 @@ function FavoritePage() {
 
   const addToCart = useCartStore((state) => state.addToCart);
 
-  /* EMPTY STATE */
   if (favorites.length === 0) {
     return (
       <section className="flex min-h-[calc(100vh-64px-120px)] items-center justify-center px-6">
@@ -43,23 +44,15 @@ function FavoritePage() {
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+        Favorites
+      </h1>
 
-      {/* HEADER */}
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-          <Heart className="text-red-500" />
-          My Favorites
-        </h1>
+      <p className="mt-2 text-sm text-zinc-500 sm:text-base">
+        {favorites.length} items
+      </p>
 
-        <span className="text-sm text-zinc-500">
-          {favorites.length} items
-        </span>
-      </div>
-
-
-      {/* FAVORITE LIST */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-
+      <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {favorites.map((product) => (
           <div
             key={product.id}
@@ -68,72 +61,72 @@ function FavoritePage() {
               overflow-hidden
               rounded-3xl
               border
+              border-zinc-200
               bg-white
-              transition
-              hover:shadow-md
+              transition-all
+              duration-300
+              hover:-translate-y-1
+              hover:shadow-2xl
             "
           >
-
-            {/* IMAGE */}
             <Link to={`/products/${product.id}`}>
-              <div className="flex h-56 items-center justify-center bg-zinc-100 p-6">
+              <div className="overflow-hidden bg-zinc-100 p-6">
                 <img
                   src={product.thumbnail}
                   alt={product.title}
                   className="
-                    max-h-full
+                    h-64
+                    w-full
                     object-contain
                     transition
-                    duration-300
+                    duration-500
                     group-hover:scale-105
                   "
                 />
               </div>
             </Link>
 
-
-            {/* CONTENT */}
-            <div className="p-5">
-
+            <div className="space-y-4 p-6">
               <Link to={`/products/${product.id}`}>
-                <h3
-                  className="
-                    line-clamp-2
-                    text-lg
-                    font-semibold
-                    hover:underline
-                  "
-                >
+                <h2 className="line-clamp-1 text-xl font-semibold">
                   {product.title}
-                </h3>
+                </h2>
               </Link>
 
-
-              <p className="mt-1 text-sm capitalize text-zinc-500">
+              <p className="text-sm capitalize text-zinc-500">
                 {product.category}
               </p>
 
-
-              <p className="mt-3 text-lg font-semibold">
+              <p className="text-xl font-bold">
                 {formatRupiah(product.price * 17000)}
               </p>
 
-
-              {/* ACTION */}
-              <div className="mt-5 flex items-center gap-3">
-
+              <div className="flex items-center gap-3 pt-2">
                 <button
-                  onClick={() => addToCart(product, 1)}
+                  onClick={async () => {
+                    const apiProduct = await getProductById(product.id);
+
+                    const qty = apiProduct.minimumOrderQuantity ?? 1;
+
+                    addToCart(apiProduct, qty);
+
+                    toast.success("Added to cart", {
+                      description: `${apiProduct.title} (${qty} pcs)`,
+                    });
+                  }}
                   className="
                     flex-1
                     rounded-xl
                     bg-black
+                    border
                     px-4
                     py-3
                     text-sm
                     text-white
                     transition
-                    hover:scale-[1.02]
+                    cursor-pointer
+                    hover:bg-white
+                    hover:text-black
                   "
                 >
                   <span className="flex items-center justify-center gap-2">
@@ -142,30 +135,31 @@ function FavoritePage() {
                   </span>
                 </button>
 
-
                 <button
-                  onClick={() => removeFavorite(product.id)}
+                  onClick={() => {
+                    removeFavorite(product.id);
+
+                    toast.success("Removed from favorite", {
+                      description: product.title,
+                    });
+                  }}
                   className="
                     rounded-xl
                     border
                     p-3
                     transition
+                    cursor-pointer
                     hover:bg-red-500
                     hover:text-white
                   "
                 >
                   <Trash2 size={18} />
                 </button>
-
               </div>
-
             </div>
-
           </div>
         ))}
-
       </div>
-
     </section>
   );
 }

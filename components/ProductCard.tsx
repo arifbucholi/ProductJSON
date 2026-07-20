@@ -13,7 +13,6 @@ interface Props {
 
 function ProductCard({ product, rate }: Props) {
   const addToCart = useCartStore((state) => state.addToCart);
-  const addFavorites = useFavoriteStore((state) => state.toggleFavorite);
 
   const originalPrice = product.price * rate;
 
@@ -22,6 +21,10 @@ function ProductCard({ product, rate }: Props) {
     product.discountPercentage,
   );
   //   console.log("STORE READY", addToCart);
+
+  const toggleFavorite = useFavoriteStore((state) => state.toggleFavorite);
+  const favorites = useFavoriteStore((state) => state.favorites);
+  const isFavorite = favorites.some((item) => item.id === product.id);
 
   return (
     <div className="group overflow-hidden rounded-3xl border border-zinc-200 bg-white transition-all duration-400 hover:-translate-y-1 hover:shadow-2xl">
@@ -91,15 +94,33 @@ function ProductCard({ product, rate }: Props) {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            addFavorites(product);
 
-            toast.success("Added to favorite", {
-              description: `${product.title}`,
-            });
+            toggleFavorite(product);
+
+            if (isFavorite) {
+              toast.success("Removed from favorite", {
+                description: product.title,
+              });
+            } else {
+              toast.success("Added to favorite", {
+                description: product.title,
+              });
+            }
           }}
-          className="rounded-full border p-3 transition hover:bg-red-500 hover:text-white cursor-pointer"
+          className={`
+              rounded-full
+              border
+              p-3
+              transition
+              cursor-pointer
+              ${
+                isFavorite
+                  ? "bg-red-500 text-white"
+                  : "hover:bg-red-500 hover:text-white"
+              }
+          `}
         >
-          <Heart size={18} />
+          <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
         </button>
       </div>
     </div>
